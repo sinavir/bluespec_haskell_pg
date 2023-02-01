@@ -1,0 +1,36 @@
+-- Copyright (c) 2014-2020 Bluespec, Inc.  All Rights Reserved.
+
+package Counter where
+
+-- ================================================================
+-- Interface declaration
+
+type CountedValue = UInt 25
+
+shift :: Integer
+shift = valueOf (SizeOf CountedValue) - 4
+
+interface Counter_IFC =
+    getState :: ActionValue  (UInt 4)
+    setThreshold :: (UInt 4) -> Action
+    increment :: Action
+
+-- ================================================================
+-- Module definition
+
+mkCounter :: Module Counter_IFC
+mkCounter = module
+  x :: Reg CountedValue <- mkReg 0
+  threshold :: Reg (UInt 4) <- mkReg 0
+
+  interface Counter_IFC
+    getState = return $ truncate (x >> shift)
+    increment = do
+      if (x < (zeroExtend threshold) << shift) then
+        x := x + 1
+      else
+        x := 0
+    setThreshold y = threshold := y
+
+
+-- ================================================================
